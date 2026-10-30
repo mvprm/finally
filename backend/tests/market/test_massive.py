@@ -1,8 +1,10 @@
 """Tests for MassiveDataSource (mocked)."""
 
+import asyncio
 from unittest.mock import MagicMock, patch
 
 import pytest
+from massive.rest.models import SnapshotMarketType
 
 from app.market.cache import PriceCache
 from app.market.massive_client import MassiveDataSource
@@ -199,3 +201,85 @@ class TestMassiveDataSource:
         assert cache.get_price("AAPL") == 190.50
 
         await source.stop()
+
+    async def test_poll_loop_polls_repeatedly(self):
+        """Test that the background loop keeps polling after start()."""
+        cache = PriceCache()
+        source = MassiveDataSource(api_key="test-key", price_cache=cache, poll_interval=0.01)
+
+        first = [_make_snapshot("AAPL", 190.00, 1707580800000)]
+        later = [_make_snapshot("AAPL", 191.00, 1707580801000)]
+
+        with patch("app.market.massive_client.RESTClient"):
+            with patch.object(source, "_fetch_snapshots", side_effect=[first] + [later] * 50):
+                await source.start(["AAPL"])
+                assert cache.get_price("AAPL") == 190.00
+                await asyncio.sleep(0.1)
+                await source.stop()
+
+        assert cache.get_price("AAPL") == 191.00
+
+    async def test_poll_loop_survives_errors(self):
+        """Test that a failed poll doesn't kill the loop."""
+        cache = PriceCache()
+        source = MassiveDataSource(api_key="test-key", price_cache=cache, poll_interval=0.01)
+        good = [_make_snapshot("AAPL", 192.00, 1707580800000)]
+
+        with patch("app.market.massive_client.RESTClient"):
+            with patch.object(
+                source,
+                "_fetch_snapshots",
+                side_effect=[[], Exception("429")] + [good] * 50,
+            ):
+                await source.start(["AAPL"])
+                await asyncio.sleep(0.1)
+                await source.stop()
+
+        assert cache.get_price("AAPL") == 192.00
+
+    async def test_fetch_snapshots_calls_client(self):
+        """Test that _fetch_snapshots passes tracked tickers to the REST client."""
+        cache = PriceCache()
+        source = MassiveDataSource(api_key="test-key", price_cache=cache)
+        source._tickers = ["AAPL", "MSFT"]
+        source._client = MagicMock()
+        source._client.get_snapshot_all.return_value = ["snap"]
+
+        result = source._fetch_snapshots()
+
+        assert result == ["snap"]
+        source._client.get_snapshot_all.assert_called_once_with(
+            market_type=SnapshotMarketType.STOCKS,
+            tickers=["AAPL", "MSFT"],
+        )
+
+    async def test_poll_without_client_is_noop(self):
+        """Test that polling before start() (no client) does nothing."""
+        cache = PriceCache()
+        source = MassiveDataSource(api_key="test-key", price_cache=cache)
+        source._tickers = ["AAPL"]
+
+        with patch.object(source, "_fetch_snapshots") as mock_fetch:
+            await source._poll_once()
+            mock_fetch.assert_not_called()
+
+    async def test_add_duplicate_ticker_ignored(self):
+        """Test that adding an existing ticker doesn't duplicate it."""
+        cache = PriceCache()
+        source = MassiveDataSource(api_key="test-key", price_cache=cache)
+
+        await source.add_ticker("AAPL")
+        await source.add_ticker("aapl")
+        assert source.get_tickers() == ["AAPL"]
+
+    async def test_start_creates_client_with_api_key(self):
+        """Test that start() builds the REST client with the configured key."""
+        cache = PriceCache()
+        source = MassiveDataSource(api_key="secret", price_cache=cache, poll_interval=60.0)
+
+        with patch("app.market.massive_client.RESTClient") as mock_client:
+            with patch.object(source, "_fetch_snapshots", return_value=[]):
+                await source.start(["AAPL"])
+                await source.stop()
+
+        mock_client.assert_called_once_with(api_key="secret")
