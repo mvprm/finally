@@ -16,13 +16,30 @@ One Docker container on port 8000: FastAPI (Python, `uv`) serves the API, the SS
 
 ## Quick Start
 
+Requires Docker. Set `OPENROUTER_API_KEY` in `.env` for AI chat (the start scripts create `.env` from `.env.example` if it is missing).
+
 ```bash
-cp .env.example .env        # then set OPENROUTER_API_KEY
-docker build -t finally .
-docker run -v finally-data:/app/db -p 8000:8000 --env-file .env finally
+# macOS / Linux
+./scripts/start_mac.sh            # builds the image on first run, starts the container, opens the browser
+./scripts/start_mac.sh --build    # rebuild after code changes
+./scripts/stop_mac.sh             # stop; data in the finally-data volume is kept
 ```
 
-Open http://localhost:8000. The `scripts/` folder will provide start/stop wrappers for macOS/Linux and Windows.
+```powershell
+# Windows PowerShell
+.\scripts\start_windows.ps1       # add -Build to rebuild, -NoOpen to skip the browser
+.\scripts\stop_windows.ps1
+```
+
+Or by hand:
+
+```bash
+cp .env.example .env
+docker build -t finally .
+docker run -d --name finally -v finally-data:/app/db -p 8000:8000 --env-file .env finally
+```
+
+Open http://localhost:8000. `docker compose up -d --build` also works. To reset all data, stop the app and run `docker volume rm finally-data`.
 
 ## Environment Variables
 
@@ -37,9 +54,19 @@ Open http://localhost:8000. The `scripts/` folder will provide start/stop wrappe
 
 ```bash
 cd backend
-uv sync --dev
+uv sync --extra dev
 uv run pytest
 ```
+
+### End-to-end tests
+
+Playwright tests live in `test/` and run in Docker against the app with `LLM_MOCK=true` and a fresh database:
+
+```bash
+./test/run_e2e.sh            # or .\test\run_e2e.ps1 on Windows
+```
+
+The HTML report is written to `test/playwright-report/`. To run against an app you started yourself (with `LLM_MOCK=true`): `cd test && npm ci && npx playwright install chromium && BASE_URL=http://localhost:8000 npx playwright test`.
 
 ## Status
 

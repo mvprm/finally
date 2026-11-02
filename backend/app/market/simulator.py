@@ -52,6 +52,7 @@ class GBMSimulator:
         tickers: list[str],
         dt: float = DEFAULT_DT,
         event_probability: float = 0.001,
+        initial_prices: dict[str, float] | None = None,
     ) -> None:
         self._dt = dt
         self._event_prob = event_probability
@@ -64,9 +65,10 @@ class GBMSimulator:
         # Cholesky decomposition of the correlation matrix (for correlated moves)
         self._cholesky: np.ndarray | None = None
 
-        # Initialize all starting tickers
+        # Initialize all starting tickers (explicit initial prices win over seeds)
+        initial_prices = initial_prices or {}
         for ticker in tickers:
-            self._add_ticker_internal(ticker)
+            self._add_ticker_internal(ticker, initial_prices.get(ticker))
         self._rebuild_cholesky()
 
     # --- Public API ---
@@ -143,12 +145,15 @@ class GBMSimulator:
 
     # --- Internals ---
 
-    def _add_ticker_internal(self, ticker: str) -> None:
+    def _add_ticker_internal(self, ticker: str, initial_price: float | None = None) -> None:
         """Add a ticker without rebuilding Cholesky (for batch initialization)."""
         if ticker in self._prices:
             return
         self._tickers.append(ticker)
-        self._prices[ticker] = SEED_PRICES.get(ticker, random.uniform(50.0, 300.0))
+        if initial_price is not None and initial_price > 0:
+            self._prices[ticker] = float(initial_price)
+        else:
+            self._prices[ticker] = SEED_PRICES.get(ticker, random.uniform(50.0, 300.0))
         self._params[ticker] = TICKER_PARAMS.get(ticker, dict(DEFAULT_PARAMS))
 
     def _rebuild_cholesky(self) -> None:
@@ -216,10 +221,15 @@ class SimulatorDataSource(MarketDataSource):
         self._sim: GBMSimulator | None = None
         self._task: asyncio.Task | None = None
 
-    async def start(self, tickers: list[str]) -> None:
+    async def start(
+        self,
+        tickers: list[str],
+        initial_prices: dict[str, float] | None = None,
+    ) -> None:
         self._sim = GBMSimulator(
             tickers=tickers,
             event_probability=self._event_prob,
+            initial_prices=initial_prices,
         )
         # Seed the cache with initial prices so SSE has data immediately
         for ticker in tickers:

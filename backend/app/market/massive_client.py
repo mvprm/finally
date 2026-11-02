@@ -38,7 +38,12 @@ class MassiveDataSource(MarketDataSource):
         self._task: asyncio.Task | None = None
         self._client: RESTClient | None = None
 
-    async def start(self, tickers: list[str]) -> None:
+    async def start(
+        self,
+        tickers: list[str],
+        initial_prices: dict[str, float] | None = None,
+    ) -> None:
+        # initial_prices is ignored: Massive fetches real prices.
         self._client = RESTClient(api_key=self._api_key)
         self._tickers = list(tickers)
 

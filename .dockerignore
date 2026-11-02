@@ -1,0 +1,39 @@
+# Keep the build context small and secrets out of the image
+.git
+.github
+.claude
+**/.claude
+backend/tests
+backend/market_data_demo.py
+.vscode
+.idea
+planning
+test
+scripts
+db
+*.md
+!backend/README.md
+
+# Secrets
+.env
+**/.env
+**/.env.*
+!.env.example
+
+# Node
+**/node_modules
+frontend/.next
+frontend/out
+frontend/coverage
+
+# Python
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+**/.coverage
+**/htmlcov
+backend/.venv
+backend/static
+**/*.db

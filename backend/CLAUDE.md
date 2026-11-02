@@ -44,6 +44,18 @@ router = create_stream_router(price_cache)  # Returns FastAPI APIRouter
 
 Default tickers: AAPL, GOOGL, MSFT, AMZN, TSLA, NVDA, META, JPM, V, NFLX. Seed prices and per-ticker volatility/drift params are in `app/market/seed_prices.py`.
 
+## App Layout (beyond market data)
+
+- `app/main.py` — `create_app()` + module-level `app`; lifespan runs the PLAN §7 startup sequence. Run: `uv run uvicorn app.main:app --host 0.0.0.0 --port 8000`
+- `app/config.py` — tunable constants (`CHAT_HISTORY_LIMIT`, `LLM_CONTEXT_MESSAGES`, `LLM_TIMEOUT_SECONDS`) and path helpers (`DB_PATH`, `STATIC_DIR`)
+- `app/db/` — schema SQL and `Database` (single sqlite3 connection, queries, `transaction()`)
+- `app/tickers.py` — `normalize_ticker()` and `sync_tracked_tickers()` (the only caller of `add_ticker`/`remove_ticker`)
+- `app/portfolio.py` — valuation, snapshots, `execute_trade()` (shared by REST and chat)
+- `app/watchlist.py`, `app/api.py` — watchlist ops and all `/api/*` routes
+- `app/chat/` — `llm.py` (structured-output schema, `litellm.acompletion` call, `LLM_MOCK` parser), `service.py` (context, auto-execution, persistence)
+
+Tests use a temp DB via `DB_PATH` (fixtures in `tests/conftest.py`, including a deterministic `FakeSource`).
+
 ## Running Tests
 
 ```bash

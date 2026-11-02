@@ -1,0 +1,22 @@
+# Optional convenience wrapper. Equivalent to:
+#   docker build -t finally .
+#   docker run -d --name finally -v finally-data:/app/db -p 8000:8000 --env-file .env finally
+#
+# Usage:  docker compose up -d --build     (stop: docker compose down — the volume is kept)
+services:
+  app:
+    build: .
+    image: finally
+    container_name: finally
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - finally-data:/app/db
+    restart: unless-stopped
+
+volumes:
+  finally-data:
+    name: finally-data

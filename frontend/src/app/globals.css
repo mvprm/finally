@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+/*
+  FinAlly terminal palette.
+  ink/panel/raised/rule form the dark surface ladder (no pure black);
+  yellow is the brand and selection colour, blue carries charts and info,
+  purple marks the buttons that submit something; up/down are price direction only.
+*/
+@theme {
+  --color-ink: #0d1117;
+  --color-panel: #121922;
+  --color-raised: #19222e;
+  --color-rule: #252f3d;
+  --color-rule-strong: #34404f;
+  --color-text: #dae0e8;
+  --color-dim: #8b97a7;
+  --color-faint: #5b6778;
+  --color-brand: #ecad0a;
+  --color-info: #209dd7;
+  --color-submit: #753991;
+  --color-submit-hover: #8a46aa;
+  --color-up: #2bb673;
+  --color-down: #e5484d;
+
+  --font-sans: "Archivo Variable", "Archivo", ui-sans-serif, system-ui, sans-serif;
+
+  --animate-flash-up: flash-up 500ms ease-out;
+  --animate-flash-down: flash-down 500ms ease-out;
+}
+
+@keyframes flash-up {
+  from {
+    background-color: color-mix(in srgb, var(--color-up) 38%, transparent);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+@keyframes flash-down {
+  from {
+    background-color: color-mix(in srgb, var(--color-down) 38%, transparent);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+@keyframes thinking {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-ring {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+html,
+body {
+  background: var(--color-ink);
+  color: var(--color-text);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  font-stretch: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numbers line up in columns everywhere. */
+.num {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.flash-up {
+  animation: var(--animate-flash-up);
+}
+.flash-down {
+  animation: var(--animate-flash-down);
+}
+
+.thinking-dot {
+  animation: thinking 1.2s infinite ease-in-out both;
+}
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.live-dot[data-state="connected"] {
+  animation: pulse-ring 1.8s ease-out infinite;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 1px;
+}
+
+/* Thin, quiet scrollbars inside panels. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-rule-strong) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash-up,
+  .flash-down,
+  .thinking-dot,
+  .live-dot[data-state="connected"] {
+    animation: none;
+  }
+}

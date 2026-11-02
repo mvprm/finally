@@ -1,0 +1,10 @@
+# Shell scripts and Docker files must keep LF endings, even on Windows checkouts,
+# or they fail inside Linux containers / on macOS.
+*.sh              text eol=lf
+Dockerfile        text eol=lf
+.dockerignore     text eol=lf
+*.yml             text eol=lf
+.env.example      text eol=lf
+
+# PowerShell scripts are fine with CRLF
+*.ps1             text eol=crlf

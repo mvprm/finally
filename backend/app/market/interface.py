@@ -23,11 +23,19 @@ class MarketDataSource(ABC):
     """
 
     @abstractmethod
-    async def start(self, tickers: list[str]) -> None:
+    async def start(
+        self,
+        tickers: list[str],
+        initial_prices: dict[str, float] | None = None,
+    ) -> None:
         """Begin producing price updates for the given tickers.
 
         Starts a background task that periodically writes to the PriceCache.
         Must be called exactly once. Calling start() twice is undefined behavior.
+
+        `initial_prices` optionally maps tickers to starting prices (used by the
+        simulator for price continuity across restarts). Sources that fetch real
+        prices ignore it.
         """
 
     @abstractmethod
